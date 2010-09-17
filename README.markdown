@@ -46,8 +46,6 @@ import javax.persistence.PersistenceContext;
 
 import static junit.framework.Assert.*;
 
-(...)
-
     @Autowired
     private ReimburseSystemDao reimburseSystemDao;
 
