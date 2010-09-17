@@ -29,6 +29,25 @@ To confirm this patch works you would want to monitor the SQL executed at flush 
 An example of a unit test to confirm this patch works as expected might look like this:
 
 `
+import com.porticosys.dao.SpringDaoTest;
+import com.porticosys.dao.claims.ReimburseSystemDao;
+import com.porticosys.domain.Description;
+import com.porticosys.domain.claims.ReimburseSystem;
+import org.hibernate.Session;
+import org.hibernate.stat.Statistics;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+
+import static junit.framework.Assert.*;
+
+(...)
+
     @Autowired
     private ReimburseSystemDao reimburseSystemDao;
 
