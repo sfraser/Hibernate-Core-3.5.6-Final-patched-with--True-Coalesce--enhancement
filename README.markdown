@@ -16,5 +16,7 @@ For more links on this issue, and why people care, see [these links.](http://del
 The files of interest modified in this patch are:
 
 [EntityInsertAction](http://github.com/sfraser/Hibernate-Core-3.5.6-Final-patched-with--True-Coalesce--enhancement/commit/33290bfc0b8ba8aef443eb029c8ed2aa728743c9#diff-3)
+
 [ActionQueue](http://github.com/sfraser/Hibernate-Core-3.5.6-Final-patched-with--True-Coalesce--enhancement/commit/33290bfc0b8ba8aef443eb029c8ed2aa728743c9#diff-4)
+
 [DefaultFlushEntityEventListener](http://github.com/sfraser/Hibernate-Core-3.5.6-Final-patched-with--True-Coalesce--enhancement/commit/33290bfc0b8ba8aef443eb029c8ed2aa728743c9#diff-5)
