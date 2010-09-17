@@ -125,7 +125,7 @@ public class ActionQueue {
      * of an INSERT/UPDATE pair being flushed, we will just have one INSERT with all the needfuls. The specific use case
      * was this:
      * <pre>
-     *      pojo = new MyPopjo()
+     *      pojo = new MyPojo()
      *      pojo.setFoo("foo value")
      *
      *      hibernateSession.persist(pojo)   // or merge
