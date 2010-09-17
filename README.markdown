@@ -1,7 +1,6 @@
-
 # Introduction
 
-This is a patched version of Hibernate 3.6.6-Final. The patch is to enhance the
+This is a patched version of Hibernate 3.5.6-Final. The patch is to enhance the
 flushing behavior of Hibernate and cause it to "coalesce" the UPDATE into the 
 INSERT even when their were dirty changes made to the entity post INSERT.
 
