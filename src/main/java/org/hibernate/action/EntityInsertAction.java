@@ -63,6 +63,16 @@ public final class EntityInsertAction extends EntityAction {
 		return state;
 	}
 
+    /**
+     * Added so the Portico True Coalesce patch can easily reset the state when coalescing an UPDATE.
+     * We could have just copied value-to-value, but being able to just swap in the array from the UPDATE will
+     * help performance.
+     * @see org.hibernate.engine.ActionQueue#tryToCoalesceUpdateIntoInsert
+     */
+    public void setState(Object[] p_newState) {
+        state = p_newState;
+    }
+
 	public void execute() throws HibernateException {
 		EntityPersister persister = getPersister();
 		SessionImplementor session = getSession();

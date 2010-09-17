@@ -308,26 +308,36 @@ public class DefaultFlushEntityEventListener implements FlushEntityEventListener
 		// we'll use scheduled updates for that.
 		new Nullability(session).checkNullability( values, persister, true );
 
-		// schedule the update
-		// note that we intentionally do _not_ pass in currentPersistentState!
-		session.getActionQueue().addAction(
-				new EntityUpdateAction(
-						entry.getId(),
-						values,
-						dirtyProperties,
-						event.hasDirtyCollection(),
-						( status == Status.DELETED && ! entry.isModifiableEntity() ?
-								persister.getPropertyValues( entity, entityMode ) :
-								entry.getLoadedState() ),
-						entry.getVersion(),
-						nextVersion,
-						entity,
-						entry.getRowId(),
-						persister,
-						session
-					)
-			);
-		
+        /**
+         * This function has been updated to participate in a "True Coelesce" behavior in that Update actions
+         * are mapped onto already existing (if any) Insert actions in the Sessions Action Queue.
+         * @see ActionQueue#tryToCoalesceUpdateIntoInsert
+         */
+
+        // Try out True Coalesce action... if we succeed in coelescing the Update values into an already
+        // existing Insert action, we will not queue up an Update.
+        if( !session.getActionQueue().tryToCoalesceUpdateIntoInsert( entity, values )) {
+            // schedule the update
+            // note that we intentionally do _not_ pass in currentPersistentState!
+            session.getActionQueue().addAction(
+                    new EntityUpdateAction(
+                            entry.getId(),
+                            values,
+                            dirtyProperties,
+                            event.hasDirtyCollection(),
+                            ( status == Status.DELETED && ! entry.isModifiableEntity() ?
+                                    persister.getPropertyValues( entity, entityMode ) :
+                                    entry.getLoadedState() ),
+                            entry.getVersion(),
+                            nextVersion,
+                            entity,
+                            entry.getRowId(),
+                            persister,
+                            session
+                        )
+                );
+        }
+
 		return intercepted;
 	}
 

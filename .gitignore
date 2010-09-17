@@ -1,2 +1,4 @@
 .svn
 target
+hibernate-core.iml
+hibernate-core-custom-portico-true-coalesce.iml

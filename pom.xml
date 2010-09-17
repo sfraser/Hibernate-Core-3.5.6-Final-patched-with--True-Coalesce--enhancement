@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>org.hibernate</groupId>
-    <artifactId>hibernate-core</artifactId>
+    <artifactId>hibernate-core-custom-portico-true-coalesce</artifactId>
     <packaging>jar</packaging>
 
     <name>Hibernate Core</name>

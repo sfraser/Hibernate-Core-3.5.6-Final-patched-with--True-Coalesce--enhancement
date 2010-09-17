@@ -120,6 +120,60 @@ public class ActionQueue {
 		collectionUpdates.clear();
 	}
 
+    /**
+     * Added by Portico to allow "true coalesce" of new entities into a session. What this means is that instead
+     * of an INSERT/UPDATE pair being flushed, we will just have one INSERT with all the needfuls. The specific use case
+     * was this:
+     * <pre>
+     *      pojo = new MyPopjo()
+     *      pojo.setFoo("foo value")
+     *
+     *      hibernateSession.persist(pojo)   // or merge
+     *
+     *      pojo.setBar("bar value")
+     *
+     *      hibernateSession.flush() // NO!!! This results in an INSERT *and* an UPDATE!!!! see http://www.delicious.com/sfraser/coalesce
+     * </pre>
+     *
+     * So in the previous pseudo code, the undesired behavior is that Hibernate queues up an INSERT that represents the
+     * state of the pojo at persist or merge time, and THEN an UPDATE syncing up the dirty starte of the managed
+     * pojo. In this case we would see bar = "bar value" in the UPDATE.
+     *
+     * This is very problematic for some applications. With the increased usage of "extended persistence context" such
+     * as in JBoss Seam and Spring Web Flow, this problem should become more of an issue. For example, what if your
+     * database has NOT NULL on "bar" above? The first INSERT would fail! Or what if you have DML triggers and having
+     * an INSERT/UPDATE pair is a problem? Not much you can do...
+     *
+     * This patch scans the ActionQueue and looks for queued up INSERT's on the passed in entity. If it finds a match,
+     * it simply overlays the INSERT values with the current dirty values, and returns true. The caller (in this case
+     * DefaultFlushEntityEventListener.scheduleUpdate) can then decide what to do. In this case the caller will
+     * decide not to queue up an UPDATE action.
+     *
+     * @param p_instance The entity that is being updated
+     * @param p_updateState The Update state
+     * @return Whether or not update state was merged into an already existing EntityInsertAction
+     * @see EntityInsertAction#setState(Object[])
+     * @see org.hibernate.event.def.DefaultFlushEntityEventListener#scheduleUpdate(org.hibernate.event.FlushEntityEvent)
+     * 
+     */
+    public boolean tryToCoalesceUpdateIntoInsert(final Object p_instance, final Object[] p_updateState) {
+
+        final Iterator iterator = insertions.iterator();
+
+        while (iterator.hasNext()) {
+            EntityInsertAction insertAction = (EntityInsertAction)iterator.next();
+
+            // if we find an INSERT for the same entity that is the passed in UPDATE,
+            // we are going to monkey patch the insert:
+            if( insertAction.getInstance() == p_instance ) {
+                insertAction.setState(p_updateState);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 	public void addAction(EntityInsertAction action) {
 		insertions.add( action );
 	}
