@@ -1,5 +1,7 @@
 # Introduction
 
+Thank you to [Julian Klein](http://twitter.com/juliank) for his help on making this patch.
+
 This is a patched version of Hibernate 3.5.6-Final. The patch is to enhance the
 flushing behavior of Hibernate and cause it to "coalesce" the UPDATE into the 
 INSERT even when there were dirty changes made to the entity post merge/persist.
