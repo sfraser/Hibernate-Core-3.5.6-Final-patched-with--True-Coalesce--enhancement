@@ -3,6 +3,11 @@
 There is a known defect in this patch currently. The entity that is coalesced is still marked
 as dirty in the session post flush. This is being worked on now.
 
+The consequence of the defect is that if you do another flush after an entity has been "coalesced",
+there will be a spurious update-action queued up and executed for that entity. In other words on 
+the second flush you will see UPDATE's for coalesced entities that were mapped to inserts in an
+earlier flush.
+
 # Introduction
 
 Thank you to [Julian Klein](http://twitter.com/juliank) for his help on making this patch.
