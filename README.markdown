@@ -1,3 +1,8 @@
+# Attention: DEFECT
+
+There is a known defect in this patch currently. The entity that is coalesced is still marked
+as dirty in the session post flush. This is being worked on now.
+
 # Introduction
 
 Thank you to [Julian Klein](http://twitter.com/juliank) for his help on making this patch.
