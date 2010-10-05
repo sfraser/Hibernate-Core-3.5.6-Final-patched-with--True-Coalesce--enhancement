@@ -23,36 +23,19 @@
  */
 package org.hibernate.engine;
 
+import org.hibernate.AssertionFailure;
+import org.hibernate.HibernateException;
+import org.hibernate.action.*;
+import org.hibernate.cache.CacheException;
+import org.hibernate.type.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.hibernate.AssertionFailure;
-import org.hibernate.HibernateException;
-import org.hibernate.action.BulkOperationCleanupAction;
-import org.hibernate.action.CollectionRecreateAction;
-import org.hibernate.action.CollectionRemoveAction;
-import org.hibernate.action.CollectionUpdateAction;
-import org.hibernate.action.EntityDeleteAction;
-import org.hibernate.action.EntityIdentityInsertAction;
-import org.hibernate.action.EntityInsertAction;
-import org.hibernate.action.EntityUpdateAction;
-import org.hibernate.action.Executable;
-import org.hibernate.action.AfterTransactionCompletionProcess;
-import org.hibernate.action.BeforeTransactionCompletionProcess;
-import org.hibernate.cache.CacheException;
-import org.hibernate.type.Type;
+import java.util.*;
 
 /**
  * Responsible for maintaining the queue of actions related to events.
@@ -87,6 +70,9 @@ public class ActionQueue {
 	private AfterTransactionCompletionProcessQueue afterTransactionProcesses;
 	private BeforeTransactionCompletionProcessQueue beforeTransactionProcesses;
 
+    //portico extension to track true coalesce
+    private final boolean useTrueCoalesce;
+
 	/**
 	 * Constructs an action queue bound to the given session.
 	 *
@@ -95,6 +81,9 @@ public class ActionQueue {
 	public ActionQueue(SessionImplementor session) {
 		this.session = session;
 		init();
+
+        //portico extension
+        useTrueCoalesce = Boolean.parseBoolean(session.getFactory().getProperties().getProperty("hibernate.extension.useTrueCoalesce"));
 	}
 
 	private void init() {
@@ -119,6 +108,8 @@ public class ActionQueue {
 		collectionRemovals.clear();
 		collectionUpdates.clear();
 	}
+
+    // begin portico customizations
 
     /**
      * Added by Portico to allow "true coalesce" of new entities into a session. What this means is that instead
@@ -154,9 +145,15 @@ public class ActionQueue {
      * @return Whether or not update state was merged into an already existing EntityInsertAction
      * @see EntityInsertAction#setState(Object[])
      * @see org.hibernate.event.def.DefaultFlushEntityEventListener#scheduleUpdate(org.hibernate.event.FlushEntityEvent)
-     * 
+     *
      */
     public boolean tryToCoalesceUpdateIntoInsert(final Object p_instance, final Object[] p_updateState) {
+
+        //if coalesce is disabled, don't do anything
+        //and inform the caller that nothing is to be done
+        if(!useTrueCoalesce){
+            return false;
+        }
 
         final Iterator iterator = insertions.iterator();
 
@@ -173,6 +170,8 @@ public class ActionQueue {
 
         return false;
     }
+
+    // end portico customizations
 
 	public void addAction(EntityInsertAction action) {
 		insertions.add( action );
