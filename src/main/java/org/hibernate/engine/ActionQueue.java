@@ -171,6 +171,55 @@ public class ActionQueue {
         return false;
     }
 
+    /**
+     * Retrieves all Entity instances queued for insertion
+     * @return An array of mapped objects queue for insertion
+     */
+    final public List getObjectsQueuedForInsertion(){
+        return retrieveQueuedObjectsFromList(insertions);
+    }
+
+    /**
+     * Retrieves all Entity instances queued for update
+     * @return An array of mapped objects queue for update
+     */
+    final public List getObjectsQueuedForUpdate(){
+        return retrieveQueuedObjectsFromList(updates);
+    }
+
+    /**
+     * Retrieves all Entity instances queued for deletion
+     * @return An array of mapped objects queue for deletion
+     */
+    final public List getObjectsQueuedForDeletion(){
+        return retrieveQueuedObjectsFromList(deletions);
+    }
+
+    /**
+     * Retrieves all instances in the supplied queue
+     * and returns them.  If not entities exist, an empty
+     * list will be returned.
+     * @param queueEntityActions
+     * @return
+     */
+    private List retrieveQueuedObjectsFromList(final List queueEntityActions){
+
+        //if there are no objects in the queue, return null
+        if(queueEntityActions.size()<1){
+            return java.util.Collections.emptyList();
+        }
+
+        final List objects = new ArrayList(queueEntityActions.size());
+        final ListIterator iterator = queueEntityActions.listIterator();
+
+        while(iterator.hasNext()){
+            EntityAction entityAction = (EntityAction)iterator.next();
+            objects.add(entityAction.getInstance());
+        }
+        return objects;
+
+    }
+
     // end portico customizations
 
 	public void addAction(EntityInsertAction action) {
