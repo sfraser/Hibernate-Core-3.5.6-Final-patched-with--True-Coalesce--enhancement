@@ -250,63 +250,8 @@ public class DefaultFlushEntityEventListener implements FlushEntityEventListener
 		final EntityMode entityMode = session.getEntityMode();
 		final EntityPersister persister = entry.getPersister();
 		final Object[] values = event.getPropertyValues();
-		
-		if ( log.isTraceEnabled() ) {
-			if ( status == Status.DELETED ) {
-				if ( ! persister.isMutable() ) {
-					log.trace(
-						"Updating immutable, deleted entity: " +
-						MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
-					);
-				}
-				else if ( ! entry.isModifiableEntity() ) {
-					log.trace(
-						"Updating non-modifiable, deleted entity: " +
-						MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
-					);
-				}
-				else {
-					log.trace(
-						"Updating deleted entity: " +
-						MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
-					);
-				}
-			}
-			else {
-				log.trace(
-						"Updating entity: " +
-						MessageHelper.infoString( persister, entry.getId(), session.getFactory()  )
-					);
-			}
-		}
+        final boolean intercepted;
 
-		final boolean intercepted;
-		if ( !entry.isBeingReplicated() ) {
-			// give the Interceptor a chance to process property values, if the properties
-			// were modified by the Interceptor, we need to set them back to the object
-			intercepted = handleInterception( event );
-		}
-		else {
-			intercepted = false;
-		}
-
-		validate( entity, persister, status, entityMode );
-
-		// increment the version number (if necessary)
-		final Object nextVersion = getNextVersion(event);
-
-		// if it was dirtied by a collection only
-		int[] dirtyProperties = event.getDirtyProperties();
-		if ( event.isDirtyCheckPossible() && dirtyProperties == null ) {
-			if ( ! intercepted && !event.hasDirtyCollection() ) {
-				throw new AssertionFailure( "dirty, but no dirty properties" );
-			}
-			dirtyProperties = ArrayHelper.EMPTY_INT_ARRAY;
-		}
-
-		// check nullability but do not doAfterTransactionCompletion command execute
-		// we'll use scheduled updates for that.
-		new Nullability(session).checkNullability( values, persister, true );
 
         /**
          * This function has been updated to participate in a "True Coelesce" behavior in that Update actions
@@ -317,6 +262,63 @@ public class DefaultFlushEntityEventListener implements FlushEntityEventListener
         // Try out True Coalesce action... if we succeed in coelescing the Update values into an already
         // existing Insert action, we will not queue up an Update.
         if( !session.getActionQueue().tryToCoalesceUpdateIntoInsert( entity, values )) {
+
+            if ( log.isTraceEnabled() ) {
+                if ( status == Status.DELETED ) {
+                    if ( ! persister.isMutable() ) {
+                        log.trace(
+                            "Updating immutable, deleted entity: " +
+                            MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
+                        );
+                    }
+                    else if ( ! entry.isModifiableEntity() ) {
+                        log.trace(
+                            "Updating non-modifiable, deleted entity: " +
+                            MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
+                        );
+                    }
+                    else {
+                        log.trace(
+                            "Updating deleted entity: " +
+                            MessageHelper.infoString( persister, entry.getId(), session.getFactory() )
+                        );
+                    }
+                }
+                else {
+                    log.trace(
+                            "Updating entity: " +
+                            MessageHelper.infoString( persister, entry.getId(), session.getFactory()  )
+                        );
+                }
+            }
+
+            if ( !entry.isBeingReplicated() ) {
+                // give the Interceptor a chance to process property values, if the properties
+                // were modified by the Interceptor, we need to set them back to the object
+                intercepted = handleInterception( event );
+            }
+            else {
+                intercepted = false;
+            }
+
+            validate( entity, persister, status, entityMode );
+
+            // increment the version number (if necessary)
+            final Object nextVersion = getNextVersion(event);
+
+            // if it was dirtied by a collection only
+            int[] dirtyProperties = event.getDirtyProperties();
+            if ( event.isDirtyCheckPossible() && dirtyProperties == null ) {
+                if ( ! intercepted && !event.hasDirtyCollection() ) {
+                    throw new AssertionFailure( "dirty, but no dirty properties" );
+                }
+                dirtyProperties = ArrayHelper.EMPTY_INT_ARRAY;
+            }
+
+            // check nullability but do not doAfterTransactionCompletion command execute
+            // we'll use scheduled updates for that.
+            new Nullability(session).checkNullability( values, persister, true );
+
             // schedule the update
             // note that we intentionally do _not_ pass in currentPersistentState!
             session.getActionQueue().addAction(
@@ -336,6 +338,8 @@ public class DefaultFlushEntityEventListener implements FlushEntityEventListener
                             session
                         )
                 );
+        }else{
+            intercepted = false;
         }
 
 		return intercepted;
