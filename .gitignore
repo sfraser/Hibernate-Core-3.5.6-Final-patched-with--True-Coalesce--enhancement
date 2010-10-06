@@ -2,3 +2,5 @@
 target
 hibernate-core.iml
 hibernate-core-custom-portico-true-coalesce.iml
+hibernate-core-custom-portico-true-coalesce.ipr
+hibernate-core-custom-portico-true-coalesce.iws
