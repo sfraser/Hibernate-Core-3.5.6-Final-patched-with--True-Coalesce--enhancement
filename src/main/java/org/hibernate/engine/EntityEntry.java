@@ -195,7 +195,9 @@ public final class EntityEntry implements Serializable {
 	public Object getRowId() {
 		return rowId;
 	}
-	
+
+
+    // @todo this appear to be what we need to update loadedState on coalesced updates!
 	/**
 	 * Handle updating the internal state of the entry after actually performing
 	 * the database update.  Specifically we update the snapshot information and

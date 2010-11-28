@@ -531,7 +531,9 @@ public class DefaultFlushEntityEventListener implements FlushEntityEventListener
 			cannotDirtyCheck = loadedState==null; // object loaded by update()
 			if ( !cannotDirtyCheck ) {
 				// dirty check against the usual snapshot of the entity
-				dirtyProperties = persister.findDirty( values, loadedState, entity, session );
+				// @todo I AM HERE - see how we can reset the "loaded state" of an entity - what happens on Updates for example? How do we reset the "loaded state?"
+                // @todo the reason we are having the second spurious UPDATE is because "loaded state" of the entity is now out of sync (still) with updated state
+                dirtyProperties = persister.findDirty( values, loadedState, entity, session );
 			}
 			else if ( entry.getStatus() == Status.DELETED && ! event.getEntityEntry().isModifiableEntity() ) {
 				// A non-modifiable (e.g., read-only or immutable) entity needs to be have
