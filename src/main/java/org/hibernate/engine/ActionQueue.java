@@ -111,6 +111,10 @@ public class ActionQueue {
 
     // begin portico customizations
 
+    private ArrayList insertionsToRemove;
+    private ArrayList updatesToRemove;
+    private ArrayList deletionsToRemove;
+
     /**
      * Added by Portico to allow "true coalesce" of new entities into a session. What this means is that instead
      * of an INSERT/UPDATE pair being flushed, we will just have one INSERT with all the needfuls. The specific use case
@@ -169,6 +173,114 @@ public class ActionQueue {
         }
 
         return false;
+    }
+
+    /**
+     * This method cleans up the actionQueue so that when
+     * the model is flushed to the database, spurious updates, inserts,
+     * and deletes are eliminated.  The following cases are currently handled:
+     *
+     *
+     * 1) When an insert and a delete is queued on the same object, but actions are removed from the queue
+     * 2) When an update and a delete are queued on the same object, the update is removed
+     *
+     */
+    private void _CoalesceExtendedPersistenceQueue() {
+
+        //if coalesce is disabled, don't do anything
+        if(!useTrueCoalesce){
+            return;
+        }
+
+        Iterator iterator = insertionsToRemove.iterator();
+        while(iterator.hasNext()){
+            insertions.remove(iterator.next());
+        }
+
+        deletionsToRemove.iterator();
+        while(iterator.hasNext()){
+            deletions.remove(iterator.next());
+        }
+
+        updatesToRemove.iterator();
+        while(iterator.hasNext()){
+            updates.remove(iterator.next());
+        }
+
+    }
+
+    private void _PrepareToCoalesceExtendedPersistenceQueue() {
+
+        //if coalesce is disabled, don't do anything
+        if(!useTrueCoalesce){
+            return;
+        }
+
+        //convert all insertions into a map where the key is object to be inserted
+        //and the value is the EntityAction
+        HashMap insertionsMap = new HashMap(insertions.size());
+        Iterator iterator = insertions.iterator();
+        while(iterator.hasNext()){
+            EntityAction insertAction = (EntityAction)iterator.next();
+            //only track inserts that are not inserts of identify
+            //ideally we never should have an identity insert at flush time
+            //but this is a sanity check
+            if(!(insertAction instanceof EntityIdentityInsertAction)){
+                insertionsMap.put(insertAction.getInstance(), insertAction);
+            }
+        }
+
+        //convert all updates into a map where the key is object to be inserted
+        //and the value is the EntityAction
+        HashMap updatesMap = new HashMap(updates.size());
+        iterator = updates.iterator();
+        while(iterator.hasNext()){
+            EntityAction updateAction = (EntityAction)iterator.next();
+            updatesMap.put(updateAction.getInstance(), updateAction);
+        }
+
+        //intialize the lists that will be used to track actions to coalesce
+        insertionsToRemove = new ArrayList();
+        deletionsToRemove = new ArrayList();
+        updatesToRemove = new ArrayList();
+
+        /*
+        * @TODO: Make sure that nothing is considered dirty after we "massage" the queue
+        */
+        boolean removeDelete = false;
+        //iterate all objects marked for deletion to determine if we need to coalesce any inserts and updates
+        iterator = deletions.iterator();
+        while(iterator.hasNext()){
+            EntityAction deleteAction = (EntityAction)iterator.next();
+
+            //get the current instance marked for deletion from the queued action
+            //we'll use this to find the object to coalesce from the insertions and updates maps
+            final Object instanceMarkedForDeletion = deleteAction.getInstance();
+
+            //find any objects queued for insertion that are also
+            //marked for deletion.  If we find such an element, queue it up
+            // for removal later to avoid ConcurrentModificationExceptions.
+            if( insertionsMap.containsKey(instanceMarkedForDeletion)) {
+                insertionsToRemove.add(insertionsMap.get(instanceMarkedForDeletion));
+                removeDelete = true;
+            }
+
+            //find any objects queued for update that are also
+            //marked for deletion.  If we find such an element, queue it up
+            // for removal later to avoid ConcurrentModificationExceptions.
+            if( updatesMap.containsKey(instanceMarkedForDeletion)) {
+                updatesToRemove.add(updatesMap.get(instanceMarkedForDeletion));
+                removeDelete = true;
+            }
+
+            //if we determined that the delete should be removed, queue it up
+            // for removal later to avoid ConcurrentModificationExceptions.
+            if(removeDelete){
+                //reset the flag
+                removeDelete = false;
+                deletionsToRemove.add(deleteAction);
+            }
+        }
     }
 
     /**
@@ -277,6 +389,13 @@ public class ActionQueue {
 	 * @throws HibernateException error executing queued actions.
 	 */
 	public void executeActions() throws HibernateException {
+
+
+        if(useTrueCoalesce){
+            _PrepareToCoalesceExtendedPersistenceQueue();
+            _CoalesceExtendedPersistenceQueue();
+        }
+
 		executeActions( insertions );
 		executeActions( updates );
 		executeActions( collectionRemovals );
