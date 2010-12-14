@@ -25,7 +25,6 @@ package org.hibernate.engine;
 
 import org.hibernate.AssertionFailure;
 import org.hibernate.HibernateException;
-import org.hibernate.action.*;
 import org.hibernate.cache.CacheException;
 import org.hibernate.type.Type;
 import org.slf4j.Logger;
@@ -35,7 +34,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.*;
 
 /**
  * Responsible for maintaining the queue of actions related to events.
@@ -69,9 +67,6 @@ public class ActionQueue {
 
 	private AfterTransactionCompletionProcessQueue afterTransactionProcesses;
 	private BeforeTransactionCompletionProcessQueue beforeTransactionProcesses;
-
-    //portico extension to track true coalesce
-    private final boolean useTrueCoalesce;
 
 	/**
 	 * Constructs an action queue bound to the given session.
@@ -111,8 +106,25 @@ public class ActionQueue {
 
     // begin portico customizations
 
+
+    /**
+     * Boolean indicating whether or not to use coalesce
+     */
+    private final boolean useTrueCoalesce;
+
+    /**
+     * Inserted objects tracked for coalesce
+     */
     private ArrayList insertionsToRemove;
+
+    /**
+     * Updated objects tracked for coalesce
+     */
     private ArrayList updatesToRemove;
+
+    /**
+     * Deleted objects tracked for coalesce
+     */
     private ArrayList deletionsToRemove;
 
     /**
@@ -185,7 +197,7 @@ public class ActionQueue {
      * 2) When an update and a delete are queued on the same object, the update is removed
      *
      */
-    private void _CoalesceExtendedPersistenceQueue() {
+    public void coalesceExtendedPersistenceQueue() {
 
         //if coalesce is disabled, don't do anything
         if(!useTrueCoalesce){
@@ -197,19 +209,33 @@ public class ActionQueue {
             insertions.remove(iterator.next());
         }
 
-        deletionsToRemove.iterator();
+        iterator = deletionsToRemove.iterator();
         while(iterator.hasNext()){
             deletions.remove(iterator.next());
         }
 
-        updatesToRemove.iterator();
+        iterator = updatesToRemove.iterator();
         while(iterator.hasNext()){
             updates.remove(iterator.next());
         }
 
     }
 
-    private void _PrepareToCoalesceExtendedPersistenceQueue() {
+    /**
+     * Inspects the current queue and marks eligible inserts, updates, and deletes
+     * for coalesce.  For example, if an object instance is marked for deletion and insertion,
+     * this method will track the instance so that later the ActionQueue can remove both
+     * the insert and delete from the queue.  This results in no DML operation being executed
+     * when true coalesce is enabled.  This method also handles the case when an object that is queued
+     * for INSERT, UPDATE, and DELETE is marked for coalesce.  Update and Insert combinations that
+     * are not queued for delete are coalesced by a call to tryToCoalesceUpdateIntoInsert from
+     * the DefaultFlushEntityEventListener.
+     *
+     * @see #tryToCoalesceUpdateIntoInsert(Object, Object[])
+     * @see #coalesceExtendedPersistenceQueue()
+     *
+     */
+    public void prepareToCoalesceExtendedPersistenceQueue() {
 
         //if coalesce is disabled, don't do anything
         if(!useTrueCoalesce){
@@ -259,7 +285,7 @@ public class ActionQueue {
 
             //find any objects queued for insertion that are also
             //marked for deletion.  If we find such an element, queue it up
-            // for removal later to avoid ConcurrentModificationExceptions.
+            // for coalesce later to avoid ConcurrentModificationExceptions.
             if( insertionsMap.containsKey(instanceMarkedForDeletion)) {
                 insertionsToRemove.add(insertionsMap.get(instanceMarkedForDeletion));
                 removeDelete = true;
@@ -267,14 +293,21 @@ public class ActionQueue {
 
             //find any objects queued for update that are also
             //marked for deletion.  If we find such an element, queue it up
-            // for removal later to avoid ConcurrentModificationExceptions.
+            // for coalesce later to avoid ConcurrentModificationExceptions.
             if( updatesMap.containsKey(instanceMarkedForDeletion)) {
                 updatesToRemove.add(updatesMap.get(instanceMarkedForDeletion));
-                removeDelete = true;
+
+                //don't set the flag removeDelete that tells us later to remove the delete statement.
+                //If the instance being updated is also being inserted, we already
+                //have set the flag to remove the delete action.  This is necessary
+                //since an object being UPDATEd and not INSERTED will not be properly
+                //DELETEd if we blindly indicate that the DELETE action be removed.
+                //IOW, we should only prevent the DELETE statement if this
+                //is a new object and not only an UPDATE.
             }
 
             //if we determined that the delete should be removed, queue it up
-            // for removal later to avoid ConcurrentModificationExceptions.
+            // for coalesce later to avoid ConcurrentModificationExceptions.
             if(removeDelete){
                 //reset the flag
                 removeDelete = false;
@@ -392,8 +425,8 @@ public class ActionQueue {
 
 
         if(useTrueCoalesce){
-            _PrepareToCoalesceExtendedPersistenceQueue();
-            _CoalesceExtendedPersistenceQueue();
+            prepareToCoalesceExtendedPersistenceQueue();
+            coalesceExtendedPersistenceQueue();
         }
 
 		executeActions( insertions );
