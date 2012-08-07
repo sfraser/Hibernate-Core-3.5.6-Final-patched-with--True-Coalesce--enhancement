@@ -22,6 +22,19 @@
  * Boston, MA  02110-1301  USA
  *
  */
+
+/**
+ * Modified by McKesson Corporation and/or one of its subsidiaries.
+ * Modifications copyright ©2010 McKesson Corporation and/or one of its subsidiaries. All rights reserved.
+ *
+ * Modifications made October 6, 2010
+ *
+   Modified scheduleUpdate() to participate in a "True Coalesce" behavior in that Update actions
+   are mapped onto already existing (if any) Insert actions in the Sessions Action Queue.
+
+   See comments in scheduleUpdate() below for more details.
+ */
+
 package org.hibernate.event.def;
 
 import java.io.Serializable;

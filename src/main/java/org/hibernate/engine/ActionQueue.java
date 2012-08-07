@@ -21,6 +21,24 @@
  * 51 Franklin Street, Fifth Floor
  * Boston, MA  02110-1301  USA
  */
+
+/**
+ * Modified by McKesson Corporation and/or one of its subsidiaries.
+ * Modifications copyright ©2010 McKesson Corporation and/or one of its subsidiaries. All rights reserved.
+ *
+ * Modifications made September 16, 2010; October 5, 2010; December 14, 2010:
+ *
+   Added tryToCoalesceUpdateIntoInsert() to allow "true coalesce" of new entities into a session. Added
+   coalesceExtendedPersistenceQueue() to clean up the ActionQueue and remove spurious DML. Added
+   prepareToCoalesceExtendedPersistenceQueue() to support the coalesce functionality. Added methods to expose
+   the opjects that are queued for insertion, deletion and update.
+
+   Also added a configurable property "useTrueCoalesce" to turn this new functionality on or off. This property
+   is set in the ActionQueue constructor.
+
+   See Javadocs on methods below for more details.
+ */
+
 package org.hibernate.engine;
 
 import org.hibernate.AssertionFailure;
@@ -79,7 +97,7 @@ public class ActionQueue {
 		this.session = session;
 		init();
 
-        //portico extension
+        //McKesson extension
         useTrueCoalesce = Boolean.parseBoolean(session.getFactory().getProperties().getProperty("hibernate.extension.useTrueCoalesce"));
 	}
 
@@ -106,7 +124,7 @@ public class ActionQueue {
 		collectionUpdates.clear();
 	}
 
-    // begin portico customizations
+    // begin McKesson customizations
 
 
     /**
@@ -130,7 +148,7 @@ public class ActionQueue {
     private ArrayList deletionsToRemove;
 
     /**
-     * Added by Portico to allow "true coalesce" of new entities into a session. What this means is that instead
+     * Added by McKesson to allow "true coalesce" of new entities into a session. What this means is that instead
      * of an INSERT/UPDATE pair being flushed, we will just have one INSERT with all the needfuls. The specific use case
      * was this:
      * <pre>
@@ -176,7 +194,7 @@ public class ActionQueue {
         final Iterator iterator = insertions.iterator();
 
         while (iterator.hasNext()) {
-            EntityInsertAction insertAction = (EntityInsertAction)iterator.next();
+            final EntityInsertAction insertAction = (EntityInsertAction)iterator.next();
 
             // if we find an INSERT for the same entity that is the passed in UPDATE,
             // we are going to monkey patch the insert:
@@ -367,7 +385,7 @@ public class ActionQueue {
 
     }
 
-    // end portico customizations
+    // end McKesson customizations
 
 	public void addAction(EntityInsertAction action) {
 		insertions.add( action );

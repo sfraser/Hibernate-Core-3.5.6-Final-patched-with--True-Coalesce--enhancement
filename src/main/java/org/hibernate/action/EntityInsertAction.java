@@ -22,6 +22,17 @@
  * Boston, MA  02110-1301  USA
  *
  */
+
+/**
+ * Modified by McKesson Corporation and/or one of its subsidiaries.
+ * Modifications copyright ©2010 McKesson Corporation and/or one of its subsidiaries. All rights reserved.
+ *
+ * Modifications made September 16, 2010
+ *
+   Added setState() so the true-coalesce patch can easily reset the state when coalescing an UPDATE.
+   See javadocs on setState() below for more details.
+ */
+
 package org.hibernate.action;
 
 import java.io.Serializable;
@@ -64,7 +75,7 @@ public final class EntityInsertAction extends EntityAction {
 	}
 
     /**
-     * Added so the Portico True Coalesce patch can easily reset the state when coalescing an UPDATE.
+     * Added so the True Coalesce patch can easily reset the state when coalescing an UPDATE.
      * We could have just copied value-to-value, but being able to just swap in the array from the UPDATE will
      * help performance.
      * @see org.hibernate.engine.ActionQueue#tryToCoalesceUpdateIntoInsert
