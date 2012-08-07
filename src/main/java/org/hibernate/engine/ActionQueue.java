@@ -25,6 +25,7 @@ package org.hibernate.engine;
 
 import org.hibernate.AssertionFailure;
 import org.hibernate.HibernateException;
+import org.hibernate.action.*;
 import org.hibernate.cache.CacheException;
 import org.hibernate.type.Type;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.*;
 
 /**
  * Responsible for maintaining the queue of actions related to events.
